@@ -1,6 +1,8 @@
 package com.company;
 
 import com.company.meal.Cuisine;
+import com.company.meal.Drink;
+import com.company.meal.Lunch;
 
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -10,7 +12,11 @@ public class MenuQuestionnaire {
 
     public static final String DEFAULT_QUESTION = "What would you like to order?";
     public static final String ADITIONAL_QUESTION = "Do you want to add something additional?";
-    public static final String LAST_QUESTION = "Do you want to order something more? (y/n)";
+    public static final String LAST_QUESTION = "Do you want to order something more?";
+    public static final String BACK = "0. Back";
+    public static final String EXIT = "0. Exit";
+    public static final String YES= "1. Yes";
+    public static final String NO= "0. No";
 
     public MenuItem menu;
     public MenuItem currentMenuItem;
@@ -25,27 +31,38 @@ public class MenuQuestionnaire {
         order = new ArrayList<MenuItem>();
 
         while (true) {
+            // if no parent or menu is null
             if(currentMenuItem == null){
                 break;
             }
 
-            String question = getQuestion(currentMenuItem);
-            System.out.println(question);
+            boolean isLastQuestion = false;
+            if(!(currentMenuItem instanceof Lunch && currentMenuItem.isHasChildren())) {
+                printQuestion(currentMenuItem);
+                printAnswerVariants(currentMenuItem);
+            }else {
+                isLastQuestion = true;
+                System.out.println(LAST_QUESTION);
+                System.out.println(YES);
+                System.out.println(NO);
+            }
 
+            // validate input
             String input = scanner.nextLine();
-
-            if(question.equals(LAST_QUESTION)){
-                if ("n".equals(input)) {
+            if(isLastQuestion){
+                if ("0".equals(input)) {
                     break;
                 }
 
-                if ("y".equals(input)) {
+                if ("1".equals(input)) {
                     currentMenuItem = menu;
                     continue;
                 }
             }else {
                 if ("0".equals(input)) {
-                    if(!currentMenuItem.isAdditionalChooser()){
+                    if(currentMenuItem.getParent() == null){
+                        break;
+                    }else if(!(currentMenuItem instanceof Drink)){
                         currentMenuItem = currentMenuItem.getParent();
                         continue;
                     }else {
@@ -60,6 +77,7 @@ public class MenuQuestionnaire {
                 continue;
             }
 
+            // putting order
             if(item.getPrice() > 0)
                 order.add(item);
 
@@ -69,60 +87,50 @@ public class MenuQuestionnaire {
         scanner.close();
 
         if(order.size() > 0){
-            String submittedOrder = getOrder();
-            System.out.println("Your order submitted: \n" + submittedOrder);
+            System.out.println("Your order submitted:");
+            printOrder();
         }else {
             System.out.println("See you next time!");
         }
     }
 
-    private String getQuestion(MenuItem currentMenuItem){
-        String result;
-        if (currentMenuItem.getChildren() != null && currentMenuItem.getChildren().size() > 0) {
-            if(currentMenuItem.getQuestion() != null){
-                result = currentMenuItem.getQuestion();
-            }else {
-                if(currentMenuItem.isAdditionalChooser()){
-                    result = ADITIONAL_QUESTION;
-                }else {
-                    result = DEFAULT_QUESTION;
-                }
-            }
-
-            result += "\n";
-
-            for (MenuItem m : currentMenuItem.getChildren()) {
-                result += m.getId() + ". " + m.getFullName() + "\n";
-            }
-
-            if(currentMenuItem.isAdditionalChooser()){
-                result += "0. No";
-            }else {
-                result +="0. Back";
-            }
-        }else {
-            result = LAST_QUESTION;
+    private void printAnswerVariants(MenuItem currentMenuItem) {
+        for (MenuItem m : currentMenuItem.getChildren()) {
+            System.out.println(m.getId() + ". " + m.getName());
         }
 
-        return result;
+        if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
+            System.out.println(NO);
+        }else if(currentMenuItem.getParent() == null){
+            System.out.println(EXIT);
+        }else {
+            System.out.println(BACK);
+        }
     }
 
-    private String getOrder() {
-        StringBuffer result = new StringBuffer();
+    private void printQuestion(MenuItem currentMenuItem){
+        if (currentMenuItem.getCustomQuestion() != null){
+            System.out.println(currentMenuItem.getCustomQuestion());
+        }else if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
+            System.out.println(ADITIONAL_QUESTION);
+        }else {
+            System.out.println(DEFAULT_QUESTION);
+        }
+    }
+
+    private void printOrder() {
         int cnt = 0;
         int price = 0;
         for (MenuItem m : order){
             if(m.getPrice() > 0){
                 cnt++;
-                result.append(cnt + "." + m.getName() + " : " + m.getPrice() + "\n");
+                System.out.println(cnt + "." + m.getName() + " : " + m.getPrice());
                 price += m.getPrice();
             }
         }
 
-        result.append("-----------------------\n");
-        result.append(price);
-
-        return result.toString();
+        System.out.println("-----------------------");
+        System.out.println(price);
     }
 
     private MenuItem getSelectedChild(String input, ArrayList<MenuItem> children) {
@@ -148,37 +156,34 @@ public class MenuQuestionnaire {
         MenuItem result = new MenuItem("Menu")
             .add(new MenuItem("Drinks")
                             .setCustomQuestion("What drink would you prefer?")
-                            .add(new MenuItem("Long Ireland", 15, true)
+                            .add(new Drink("Long Ireland", 15)
                                             .add(new MenuItem("Rom"))
                                             .add(new MenuItem("Tequilla"))
                             )
-                            .add(new MenuItem("Tea", 8, true)
+                            .add(new Drink("Tea", 8)
                                             .add(new MenuItem("Sugar"))
                                             .add(new MenuItem("Lemon"))
                             )
-                            .add(new MenuItem("Cappuchino", 10, true)
-                                            .add(new MenuItem("Cinnamon"))
-                                            .add(new MenuItem("Chocolate"))
-                            )
+                            .add(new Drink("Cappuchino", 10))
             )
             .add(new MenuItem("Lunch")
                             .setCustomQuestion("What cuisine do you prefer")
-                            .add(new MenuItem(Cuisine.MEXICAN.toString())
-                                            .add(new MenuItem("Hot and spicy", 20)
-                                                            .addPart(new MenuItem("Burito"))
-                                                            .addPart(new MenuItem("Guacamole"))
+                            .add(new MenuItem(Cuisine.MEXICAN.getName())
+                                            .add(new Lunch("Hot and spicy", Cuisine.MEXICAN, 20)
+                                                            .add(new MenuItem("Burito"))
+                                                            .add(new MenuItem("Guacamole"))
                                             )
                             )
-                            .add(new MenuItem(Cuisine.POLISH.toString())
-                                            .add(new MenuItem("Traditional Polish", 18)
-                                                            .addPart(new MenuItem("Zurek"))
-                                                            .addPart(new MenuItem("Sernik"))
+                            .add(new MenuItem(Cuisine.POLISH.getName())
+                                            .add(new Lunch("Traditional Polish", Cuisine.POLISH, 18)
+                                                            .add(new MenuItem("Zurek"))
+                                                            .add(new MenuItem("Sernik"))
                                             )
                             )
-                            .add(new MenuItem(Cuisine.POLISH.toString())
-                                            .add(new MenuItem("Mammamia", 25)
-                                                            .addPart(new MenuItem("Pizza Quattro Stragioni"))
-                                                            .addPart(new MenuItem("Tiramisu"))
+                            .add(new MenuItem(Cuisine.ITALIAN.getName())
+                                            .add(new Lunch("Mammamia", Cuisine.ITALIAN, 25)
+                                                            .add(new MenuItem("Pizza Quattro Stragioni"))
+                                                            .add(new MenuItem("Tiramisu"))
                                             )
                             )
             );
