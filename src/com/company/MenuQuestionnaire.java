@@ -1,34 +1,29 @@
 package com.company;
 
-import com.company.meal.Cuisine;
 import com.company.meal.Drink;
 import com.company.meal.Lunch;
+import com.company.meal.Cuisine;
 
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.Scanner;
-
 
 public class MenuQuestionnaire {
 
-    public static final String DEFAULT_QUESTION = "What would you like to order?";
-    public static final String ADITIONAL_QUESTION = "Do you want to add something additional?";
-    public static final String LAST_QUESTION = "Do you want to order something more?";
-    public static final String BACK = "0. Back";
-    public static final String EXIT = "0. Exit";
-    public static final String YES= "1. Yes";
-    public static final String NO= "0. No";
-
     public MenuItem menu;
-    public MenuItem currentMenuItem;
-    public ArrayList<MenuItem> order;
+    private Properties properties;
+
+    public MenuQuestionnaire(Properties properties) {
+        this.properties = properties;
+    }
 
     public void start() {
         menu = getMenu();
 
-        currentMenuItem = menu;
+        MenuItem currentMenuItem = menu;
 
         Scanner scanner = new Scanner(System.in);
-        order = new ArrayList<MenuItem>();
+        ArrayList<MenuItem> order = new ArrayList<MenuItem>();
 
         while (true) {
             // if no parent or menu is null
@@ -36,20 +31,13 @@ public class MenuQuestionnaire {
                 break;
             }
 
-            boolean isLastQuestion = false;
-            if(!(currentMenuItem instanceof Lunch && currentMenuItem.isHasChildren())) {
-                printQuestion(currentMenuItem);
-                printAnswerVariants(currentMenuItem);
-            }else {
-                isLastQuestion = true;
-                System.out.println(LAST_QUESTION);
-                System.out.println(YES);
-                System.out.println(NO);
-            }
+            boolean isNotLast = isNotLastQuestion(currentMenuItem);
+            printQuestion(currentMenuItem, isNotLast);
+            printAnswerVariants(currentMenuItem, isNotLast);
 
             // validate input
             String input = scanner.nextLine();
-            if(isLastQuestion){
+            if(!isNotLast){
                 if ("0".equals(input)) {
                     break;
                 }
@@ -73,64 +61,64 @@ public class MenuQuestionnaire {
 
             MenuItem item = getSelectedChild(input, currentMenuItem.getChildren());
             if (item == null) {
-                System.out.println("Try one more time");
+                System.out.println(properties.getProperty("tryOneMoreTime"));
                 continue;
             }
 
-            // putting order
-            if(item.getPrice() > 0)
+            if(item.getPrice() > 0) {
                 order.add(item);
+            }
 
             currentMenuItem = item;
         }
 
         scanner.close();
 
+        // putting order
         if(order.size() > 0){
-            System.out.println("Your order submitted:");
-            printOrder();
+            System.out.println(properties.getProperty("orderSubmitted"));
+            printOrder(order);
         }else {
-            System.out.println("See you next time!");
+            System.out.println(properties.getProperty("seeYou"));
         }
     }
 
-    private void printAnswerVariants(MenuItem currentMenuItem) {
-        for (MenuItem m : currentMenuItem.getChildren()) {
-            System.out.println(m.getId() + ". " + m.getName());
-        }
-
-        if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
-            System.out.println(NO);
-        }else if(currentMenuItem.getParent() == null){
-            System.out.println(EXIT);
-        }else {
-            System.out.println(BACK);
-        }
+    private boolean isNotLastQuestion(MenuItem currentMenuItem){
+        return !(currentMenuItem instanceof Lunch) && currentMenuItem.getChildren() != null;
     }
 
-    private void printQuestion(MenuItem currentMenuItem){
-        if (currentMenuItem.getCustomQuestion() != null){
-            System.out.println(currentMenuItem.getCustomQuestion());
-        }else if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
-            System.out.println(ADITIONAL_QUESTION);
-        }else {
-            System.out.println(DEFAULT_QUESTION);
-        }
-    }
-
-    private void printOrder() {
-        int cnt = 0;
-        int price = 0;
-        for (MenuItem m : order){
-            if(m.getPrice() > 0){
-                cnt++;
-                System.out.println(cnt + "." + m.getName() + " : " + m.getPrice());
-                price += m.getPrice();
+    private void printAnswerVariants(MenuItem currentMenuItem, boolean isNotLast) {
+        if(isNotLast && currentMenuItem.isHasChildren()){
+            for (MenuItem m : currentMenuItem.getChildren()) {
+                System.out.println(m.getId() + ". " + m.getName());
             }
-        }
 
-        System.out.println("-----------------------");
-        System.out.println(price);
+            // add last variant no, back, exit
+            if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
+                System.out.println(properties.getProperty("no"));
+            }else if(currentMenuItem.getParent() == null){
+                System.out.println(properties.getProperty("exit"));
+            }else {
+                System.out.println(properties.getProperty("back"));
+            }
+        }else {
+            System.out.println(properties.getProperty("yes"));
+            System.out.println(properties.getProperty("no"));
+        }
+    }
+
+    private void printQuestion(MenuItem currentMenuItem, boolean isNotLast){
+        if(isNotLast){
+            if (currentMenuItem.getCustomQuestion() != null){
+                System.out.println(currentMenuItem.getCustomQuestion());
+            }else if(currentMenuItem instanceof Drink && currentMenuItem.isHasChildren()){
+                System.out.println(properties.getProperty("additionalQuestion"));
+            }else {
+                System.out.println(properties.getProperty("defaultQuestion"));
+            }
+        }else {
+            System.out.println(properties.getProperty("lastQuestion"));
+        }
     }
 
     private MenuItem getSelectedChild(String input, ArrayList<MenuItem> children) {
@@ -152,40 +140,56 @@ public class MenuQuestionnaire {
         return null;
     }
 
+    private void printOrder(ArrayList<MenuItem> order) {
+        int cnt = 0;
+        int price = 0;
+        for (MenuItem m : order){
+            if(m.getPrice() > 0){
+                cnt++;
+                System.out.println(cnt + "." + m.getName() + " : " + m.getPrice());
+                price += m.getPrice();
+            }
+        }
+
+        System.out.println("-----------------------");
+        System.out.println(price);
+    }
+
     public MenuItem getMenu(){
-        MenuItem result = new MenuItem("Menu")
-            .add(new MenuItem("Drinks")
-                            .setCustomQuestion("What drink would you prefer?")
-                            .add(new Drink("Long Ireland", 15)
-                                            .add(new MenuItem("Rom"))
-                                            .add(new MenuItem("Tequilla"))
-                            )
-                            .add(new Drink("Tea", 8)
-                                            .add(new MenuItem("Sugar"))
-                                            .add(new MenuItem("Lemon"))
-                            )
-                            .add(new Drink("Cappuchino", 10))
+        MenuItem result = new MenuItemImpl("Menu")
+            .add(new MenuItemImpl("Drinks")
+                    .setCustomQuestion("What drink would you prefer?")
+                    .add(new Drink("Long Ireland", 15)
+                            .setCustomQuestion("Do you want more alcohol to the cocktail?")
+                            .add(new MenuItemImpl("Tequilla"))
+                            .add(new MenuItemImpl("Rom"))
+                    )
+                    .add(new Drink("Tea", 8)
+                            .add(new MenuItemImpl("Sugar"))
+                            .add(new MenuItemImpl("Lemon"))
+                    )
+                    .add(new Drink("Cappuchino", 10))
             )
-            .add(new MenuItem("Lunch")
-                            .setCustomQuestion("What cuisine do you prefer")
-                            .add(new MenuItem(Cuisine.MEXICAN.getName())
-                                            .add(new Lunch("Hot and spicy", Cuisine.MEXICAN, 20)
-                                                            .add(new MenuItem("Burito"))
-                                                            .add(new MenuItem("Guacamole"))
-                                            )
+            .add(new MenuItemImpl("Lunch")
+                    .setCustomQuestion("What cuisine do you prefer")
+                    .add(new MenuItemImpl(Cuisine.MEXICAN.getName())
+                            .add(new Lunch("Hot and spicy", 20)
+                                    .add(new MenuItemImpl("Burito"))
+                                    .add(new MenuItemImpl("Guacamole"))
                             )
-                            .add(new MenuItem(Cuisine.POLISH.getName())
-                                            .add(new Lunch("Traditional Polish", Cuisine.POLISH, 18)
-                                                            .add(new MenuItem("Zurek"))
-                                                            .add(new MenuItem("Sernik"))
-                                            )
+                    )
+                    .add(new MenuItemImpl(Cuisine.POLISH.getName())
+                            .add(new Lunch("Traditional Polish", 18)
+                                    .add(new MenuItemImpl("Zurek"))
+                                    .add(new MenuItemImpl("Sernik"))
                             )
-                            .add(new MenuItem(Cuisine.ITALIAN.getName())
-                                            .add(new Lunch("Mammamia", Cuisine.ITALIAN, 25)
-                                                            .add(new MenuItem("Pizza Quattro Stragioni"))
-                                                            .add(new MenuItem("Tiramisu"))
-                                            )
+                    )
+                    .add(new MenuItemImpl(Cuisine.ITALIAN.getName())
+                            .add(new Lunch("Mammamia", 25)
+                                    .add(new MenuItemImpl("Pizza Quattro Stragioni"))
+                                    .add(new MenuItemImpl("Tiramisu"))
                             )
+                    )
             );
         return result;
     }

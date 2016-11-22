@@ -1,82 +1,25 @@
 package com.company;
 
-import com.company.meal.Meal;
-
 import java.util.ArrayList;
 
-public class MenuItem implements Meal {
+public interface MenuItem {
+    String getName();
 
-    private String name;
-    private ArrayList<MenuItem> children;
-    private MenuItem parent;
-    private long price;
-    private int id;
-    private String customQuestion;
-    private boolean hasChildren;
+    long getPrice();
 
-    public MenuItem(String name){
-        this.name = name;
-    }
+    void setId(int id);
 
-    public MenuItem(String name, long price){
-        this(name);
+    int getId();
 
-        this.price = price;
-    }
+    MenuItem add(MenuItem child);
 
-    public String getName() {
-        return name;
-    }
+    ArrayList<MenuItem> getChildren();
 
-    public long getPrice() {
-        return price;
-    }
+    boolean isHasChildren();
 
-    public MenuItem add(MenuItem child){
-        hasChildren = true;
+    void setParent(MenuItem menuItem);
 
-        child.setParent(this);
+    MenuItem getParent();
 
-        if(children == null){
-            children = new ArrayList<MenuItem>();
-        }
-
-        child.setId(children.size() + 1);
-
-        children.add(child);
-
-        return this;
-    }
-
-    public ArrayList<MenuItem> getChildren() {
-        return children;
-    }
-
-    public MenuItem getParent() {
-        return parent;
-    }
-    public void setParent(MenuItem parent) {
-        this.parent = parent;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getCustomQuestion() {
-        return customQuestion;
-    }
-
-    public MenuItem setCustomQuestion(String question) {
-        this.customQuestion = question;
-        return this;
-    }
-
-    public boolean isHasChildren(){
-        return hasChildren;
-    }
+    String getCustomQuestion();
 }
