@@ -1,19 +1,12 @@
 package com.company.meal;
 
 import com.company.MenuItem;
+import com.company.MenuItemImpl;
 
-public class Lunch extends MenuItem {
+public class Lunch extends MenuItemImpl {
 
-    private Cuisine cuisine;
-
-    public Lunch(String name, Cuisine cuisine, long price) {
+    public Lunch(String name, long price) {
         super(name, price);
-
-        this.cuisine = cuisine;
-    }
-
-    public Cuisine getCuisine() {
-        return cuisine;
     }
 
     public String getName() {
